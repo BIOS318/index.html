@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Axis Bot • Настройки</title>
+    <style>
+        :root {
+            --tg-theme-bg: #1a1a2e;
+            --tg-theme-text: #e0e0e0;
+            --tg-theme-button: #6c63ff;
+            --tg-theme-button-text: #ffffff;
+            --card-bg: rgba(255,255,255,0.05);
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--tg-theme-bg);
+            color: var(--tg-theme-text);
+            padding: 20px 16px;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+        .container { max-width: 400px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 24px; }
+        .logo-text {
+            font-size: 28px;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 3s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            0% { filter: drop-shadow(0 0 6px #667eea); }
+            100% { filter: drop-shadow(0 0 15px #764ba2); }
+        }
+        .subtitle { opacity: 0.8; font-size: 14px; margin-top: 4px; }
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:active { transform: scale(0.98); box-shadow: 0 0 20px rgba(108,99,255,0.3); }
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .mode-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .mode-btn {
+            background: rgba(255,255,255,0.08);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 12px 8px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--tg-theme-text);
+        }
+        .mode-btn.active {
+            border-color: var(--tg-theme-button);
+            background: rgba(108,99,255,0.15);
+            box-shadow: 0 0 15px rgba(108,99,255,0.4);
+        }
+        .mode-btn:active { transform: scale(0.95); }
+        .action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 16px;
+            background: var(--tg-theme-button);
+            color: var(--tg-theme-button-text);
+            font-size: 16px;
+            font-weight: 700;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .action-btn:active { opacity: 0.8; transform: scale(0.98); }
+        .action-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            opacity: 0.6;
+            font-size: 12px;
+        }
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header fade-in">
+            <div class="logo-text">Axis 2.1.1</div>
+            <div class="subtitle">Управление интеллектом</div>
+        </div>
+
+        <div class="card fade-in">
+            <div class="card-title">
+                <span>🧠</span> Выбор режима
+            </div>
+            <div class="mode-list" id="mode-list"></div>
+        </div>
+
+        <div class="card fade-in">
+            <button class="action-btn" id="clear-history">
+                🧹 Очистить историю диалога
+            </button>
+            <button class="action-btn secondary" id="help-btn">
+                ℹ️ Справка по режимам
+            </button>
+        </div>
+
+        <div class="footer fade-in">
+            Нажмите на режим, чтобы переключить бота
+        </div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Пытаемся получить текущий режим из переданных данных (опционально)
+        // Если бот передал start_param или что-то ещё, можно подхватить.
+        // Здесь для простоты текущий режим не получаем, просто выделим кнопку по умолчанию "lite".
+        let currentMode = 'lite'; // захардкожено, но можно расширить
+
+        function renderModes(activeMode) {
+            currentMode = activeMode;
+            const modes = [
+                { id: 'lite', label: '🍃 Lite', desc: 'Быстрый' },
+                { id: 'lite_research', label: '🔬 Lite Research', desc: 'Базовый анализ' },
+                { id: 'pro', label: '💎 Pro', desc: 'Продвинутый (1 квота)' },
+                { id: 'pro_research', label: '🔍 Pro Research', desc: 'Эксперт (2 квоты)' },
+                { id: 'art', label: '🎨 ART', desc: 'Генерация изображений' }
+            ];
+            const container = document.getElementById('mode-list');
+            container.innerHTML = modes.map(m => `
+                <div class="mode-btn ${m.id === activeMode ? 'active' : ''}" data-mode="${m.id}">
+                    <div>${m.label}</div>
+                    <div style="font-size:11px; opacity:0.7;">${m.desc}</div>
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const mode = btn.dataset.mode;
+                    if (mode === currentMode) return;
+                    tg.sendData(`set_mode:${mode}`);
+                    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentMode = mode;
+                    tg.HapticFeedback.notificationOccurred('success');
+                });
+            });
+        }
+
+        document.getElementById('clear-history').addEventListener('click', () => {
+            tg.sendData('clear_history');
+            tg.HapticFeedback.impactOccurred('medium');
+            tg.showPopup({ title: 'Готово', message: 'История диалога очищена' });
+        });
+
+        document.getElementById('help-btn').addEventListener('click', () => {
+            tg.showPopup({
+                title: 'Справка',
+                message: '🍃 Lite – безлимитно, быстро\n💎 Pro – 50/400 квот в день\n🎨 ART – генерация картинок\nВ боте доступны команды /profile, /clear'
+            });
+            tg.HapticFeedback.notificationOccurred('warning');
+        });
+
+        // Инициализация с дефолтным режимом
+        renderModes('lite');
+    </script>
+</body>
+</html>
